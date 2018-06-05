@@ -1,7 +1,7 @@
 const functions = require('firebase-functions');
 const twit = require('twit');
 const config = require('./config.js');
-const options = require('./options.js');
+const twitterOptions = require('./options.js');
 const Parser = require('rss-parser');
 const admin = require('firebase-admin');
 const Twitter = new twit(config);
@@ -19,31 +19,51 @@ exports.showTwitter = functions.https.onRequest((request, response) => {
       return response.send(err);
     }
     else {
-      const newestPost = getNewestPost(feed);
-      Twitter.get('statuses/user_timeline', options, (err, data) => {
-        const isPostAlready = isAlreadyPost(newestPost, data);
-        if (!isPostAlready) {
-          Twitter.post('statuses/update', {status: newestPost}, (error, tweet, res) => {
-            if (error) {
-              console.log(error);
+      if (feed && feed.items) {
+        let count = 0;
+        if (feed.items.length >= 15) {
+          for (let i = 0; i < 15; i++) {
+            console.log(feed.items[i]);
+            const tweetItem = generateTweetFromFeed(feed.items[i]);
+            if (tweetItem) {
+              if (tweetToTwitter(tweetItem)){
+                count++;
+              }
             }
-            console.log(tweet);
-            console.log(res);
-            return response.send(newestPost);
-          })
+          }
         }
-        else {
-          return response.send('post already tweeted');
-        }
-      });
+        return response.send("Succesfully tweeted " + count + " items");
+      }
+      else {
+        return response.send('There was not 15 items in the feed');
+      }
     }
   });
 });
 
-const getNewestPost = (feed) => {
-  let returnedTweet = 'tweet';
-  if (feed) {
-    const feedItem = feed.items[0];
+const tweetToTwitter = (tweetMessage) => {
+  let success = false;
+  if (tweetMessage) {
+    Twitter.get('statuses/user_timeline', twitterOptions, (err, data) => {
+      const isPostAlready = isAlreadyPost(tweetMessage, data);
+      if (!isPostAlready) {
+        Twitter.post('statuses/update', {status: tweetMessage}, (error, tweet, res) => {
+          if (error) {
+            console.log(error);
+          }
+          console.log(tweet);
+          console.log(res);
+          success = true;
+        })
+      }
+    });
+  }
+  return success;
+};
+
+const generateTweetFromFeed = (feedItem) => {
+  let returnedTweet = null;
+  if (feedItem) {
     if (feedItem) {
       const link = feedItem.link;
       const content = feedItem.content;
@@ -51,7 +71,7 @@ const getNewestPost = (feed) => {
       const maxLength = 280 - urlLength;
 
       if (content.length >= maxLength) {
-        returnedTweet = content.substring(0, maxLength) + ' ' + link;
+        returnedTweet = content.substring(0, maxLength) + '... ' + link;
       }
       else {
         returnedTweet = content + ' ' + link;
@@ -65,6 +85,7 @@ const getNewestPost = (feed) => {
 const isAlreadyPost = (post, tweets) => {
   let alreadyTwit = false;
   for (let i = 0; i < tweets.length ; i++) {
+    console.log(tweets[i]);
     if (!alreadyTwit && tweets[i].text.includes(post)) {
       return true;
     } else {
