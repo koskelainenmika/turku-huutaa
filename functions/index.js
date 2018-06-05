@@ -23,7 +23,6 @@ exports.showTwitter = functions.https.onRequest((request, response) => {
         let count = 0;
         if (feed.items.length >= 15) {
           for (let i = 0; i < 15; i++) {
-            console.log(feed.items[i]);
             const tweetItem = generateTweetFromFeed(feed.items[i]);
             if (tweetItem) {
               if (tweetToTwitter(tweetItem)){
