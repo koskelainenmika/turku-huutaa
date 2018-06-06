@@ -1,7 +1,6 @@
 const functions = require('firebase-functions');
 const twit = require('twit');
 const config = require('./config.js');
-const twitterOptions = require('./options.js');
 const Parser = require('rss-parser');
 const admin = require('firebase-admin');
 const Twitter = new twit(config);
