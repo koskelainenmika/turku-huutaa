@@ -6,6 +6,7 @@ const Parser = require('rss-parser');
 const admin = require('firebase-admin');
 const Twitter = new twit(config);
 const parser = new Parser();
+const differenceInMinutes = require('date-fns/difference_in_minutes');
 admin.initializeApp(functions.config().firebase);
 
 /**
@@ -20,18 +21,17 @@ exports.showTwitter = functions.https.onRequest((request, response) => {
     }
     else {
       if (feed && feed.items) {
-        let count = 0;
         if (feed.items.length >= 15) {
           for (let i = 0; i < 15; i++) {
             const tweetItem = generateTweetFromFeed(feed.items[i]);
             if (tweetItem) {
               if (tweetToTwitter(tweetItem)){
-                count++;
+                console.log("Successfully tweeted: " + tweetItem);
               }
             }
           }
+          return response.send("Success");
         }
-        return response.send("Succesfully tweeted " + count + " items");
       }
       else {
         return response.send('There was not 15 items in the feed');
@@ -43,27 +43,23 @@ exports.showTwitter = functions.https.onRequest((request, response) => {
 const tweetToTwitter = (tweetMessage) => {
   let success = false;
   if (tweetMessage) {
-    Twitter.get('statuses/user_timeline', twitterOptions, (err, data) => {
-      const isPostAlready = isAlreadyPost(tweetMessage, data);
-      if (!isPostAlready) {
-        Twitter.post('statuses/update', {status: tweetMessage}, (error, tweet, res) => {
-          if (error) {
-            console.log(error);
-          }
-          console.log(tweet);
-          console.log(res);
-          success = true;
-        })
+    Twitter.post('statuses/update', {status: tweetMessage}, (error, tweet, res) => {
+      if (error) {
+        console.log(error);
       }
+      console.log(tweet);
+      console.log(res);
+      success = true;
     });
   }
   return success;
 };
 
+
 const generateTweetFromFeed = (feedItem) => {
   let returnedTweet = null;
   if (feedItem) {
-    if (feedItem) {
+    if (isNewPost(feedItem)) {
       const link = feedItem.link;
       const content = feedItem.content;
       const urlLength = 25;
@@ -81,15 +77,14 @@ const generateTweetFromFeed = (feedItem) => {
   return returnedTweet;
 };
 
-const isAlreadyPost = (post, tweets) => {
-  let alreadyTwit = false;
-  for (let i = 0; i < tweets.length ; i++) {
-    console.log(tweets[i]);
-    if (!alreadyTwit && tweets[i].text.includes(post)) {
-      return true;
-    } else {
-      alreadyTwit = false;
+const isNewPost = (feedItem) => {
+  let isNew = false;
+  if (feedItem) {
+    const currentDate = new Date();
+    if (differenceInMinutes(currentDate, feedItem.isoDate) < 15) {
+      isNew = true;
     }
   }
-  return alreadyTwit;
+
+  return isNew;
 };

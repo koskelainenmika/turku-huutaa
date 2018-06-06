@@ -9,6 +9,7 @@
     "logs": "firebase functions:log"
   },
   "dependencies": {
+    "date-fns": "^1.29.0",
     "firebase-admin": "~5.12.1",
     "firebase-functions": "^1.0.3",
     "rss-parser": "^3.1.3",
