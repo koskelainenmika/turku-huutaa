@@ -62,13 +62,14 @@ const generateTweetFromFeed = (feedItem) => {
       const link = feedItem.link;
       const content = feedItem.content;
       const urlLength = 25;
-      const maxLength = 277 - urlLength;
+      const hashTag = '#turku';
+      const maxLength = 270 - urlLength;
 
       if (content.length >= maxLength) {
-        returnedTweet = content.substring(0, maxLength) + '... ' + link;
+        returnedTweet = content.substring(0, maxLength) + '... ' + hashTag + ' ' + link;
       }
       else {
-        returnedTweet = content + ' ' + link;
+        returnedTweet = content + ' ' + hashTag + ' ' + link;
       }
     }
   }
